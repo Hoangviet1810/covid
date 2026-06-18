@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COVID-19 & Bonheur — Data Analysis using Python</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+/* ==================== CSS VARIABLES ==================== */
+:root { --transition-speed: 0.4s; }
+
+[data-theme="dark"] {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-card: #1a1a2e;
+  --bg-card-hover: #1f1f35;
+  --bg-glass: rgba(26,26,46,0.7);
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0b8;
+  --text-muted: #6b6b80;
+  --accent-primary: #6c63ff;
+  --accent-secondary: #00d4aa;
+  --accent-tertiary: #ff6b6b;
+  --accent-warning: #ffa726;
+  --accent-info: #42a5f5;
+  --border-color: rgba(108,99,255,0.15);
+  --border-glow: rgba(108,99,255,0.3);
+  --shadow-color: rgba(0,0,0,0.4);
+  --gradient-primary: linear-gradient(135deg, #6c63ff, #00d4aa);
+  --gradient-secondary: linear-gradient(135deg, #ff6b6b, #ffa726);
+  --gradient-bg: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #1a1a2e 100%);
+  --glow-primary: 0 0 20px rgba(108,99,255,0.3);
+  --glow-secondary: 0 0 20px rgba(0,212,170,0.3);
+  --scrollbar-bg: #1a1a2e;
+  --scrollbar-thumb: #6c63ff;
+  --particle-color: rgba(108,99,255,0.1);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8f9ff;
+  --bg-glass: rgba(255,255,255,0.85);
+  --text-primary: #1a1a2e;
+  --text-secondary: #555570;
+  --text-muted: #8888a0;
+  --accent-primary: #5b52e0;
+  --accent-secondary: #00b894;
+  --accent-tertiary: #e74c3c;
+  --accent-warning: #f39c12;
+  --accent-info: #3498db;
+  --border-color: rgba(91,82,224,0.12);
+  --border-glow: rgba(91,82,224,0.2);
+  --shadow-color: rgba(0,0,0,0.08);
+  --gradient-primary: linear-gradient(135deg, #5b52e0, #00b894);
+  --gradient-secondary: linear-gradient(135deg, #e74c3c, #f39c12);
+  --gradient-bg: linear-gradient(135deg, #f0f2f5 0%, #e8eaf0 50%, #f0f2f5 100%);
+  --glow-primary: 0 0 15px rgba(91,82,224,0.15);
+  --glow-secondary: 0 0 15px rgba(0,184,148,0.15);
+  --scrollbar-bg: #e8e8f0;
+  --scrollbar-thumb: #5b52e0;
+  --particle-color: rgba(91,82,224,0.06);
+}
+
+/* ==================== RESET & BASE ==================== */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*::-webkit-scrollbar { width:8px; }
+*::-webkit-scrollbar-track { background:var(--scrollbar-bg); }
+*::-webkit-scrollbar-thumb { background:var(--scrollbar-thumb); border-radius:4px; }
+html { scroll-behavior:smooth; }
+body {
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--gradient-bg);
+  color:var(--text-primary);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+/* ==================== LOADING SCREEN ==================== */
+.loading-screen {
+  position:fixed; inset:0;
+  background:#0a0a0f;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:10000;
+  transition:opacity 1s ease, visibility 1s ease;
+}
+.loading-screen.fade-out { opacity:0; visibility:hidden; }
+.loading-ring {
+  width:220px; height:220px; border-radius:50%; position:relative; margin-bottom:40px;
+  background:rgba(10,10,20,0.85);
+  box-shadow:0 0 40px rgba(108,99,255,0.2), inset 0 0 30px rgba(0,0,0,0.5);
+}
+.loading-ring::before {
+  content:''; position:absolute; inset:0; border-radius:50%;
+  border:6px solid transparent;
+  border-top-color:#6c63ff; border-right-color:#00d4aa;
+  animation:loadingSpin 1.2s linear infinite;
+}
+.loading-ring::after {
+  content:''; position:absolute; inset:12px; border-radius:50%;
+  border:4px solid transparent;
+  border-bottom-color:#ff6b6b; border-left-color:#ffa726;
+  animation:loadingSpin 0.8s linear infinite reverse;
+}
+.loading-icon {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-size:72px; font-weight:800;
+  background:linear-gradient(135deg,#6c63ff,#00d4aa);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 14px rgba(0,212,170,0.7));
+}
+@keyframes loadingSpin { to { transform:rotate(360deg); } }
+@keyframes loadingPulse {
+  0%,100% { transform:translate(-50%,-50%) scale(1); opacity:0.7; }
+  50% { transform:translate(-50%,-50%) scale(1.2); opacity:1; }
+}
+.loading-text {
+  font-size:20px; font-weight:300; letter-spacing:8px; text-transform:uppercase;
+  background:linear-gradient(90deg,#6c63ff,#00d4aa,#ff6b6b,#6c63ff);
+  background-size:300% 100%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  animation:loadingGradient 3s ease infinite; margin-bottom:10px;
+}
+.loading-sub { font-size:11px; color:#555570; letter-spacing:4px; text-transform:uppercase; }
+@keyframes loadingGradient {
+  0% { background-position:0% 50%; }
+  50% { background-position:100% 50%; }
+  100% { background-position:0% 50%; }
+}
+.loading-bar-container {
+  width:200px; height:2px; background:rgba(108,99,255,0.1);
+  border-radius:1px; margin-top:24px; overflow:hidden;
+}
+.loading-bar {
+  height:100%; width:0%; background:linear-gradient(90deg,#6c63ff,#00d4aa);
+  border-radius:1px; transition:width 0.1s linear;
+}
+
+/* ==================== PARTICLES ==================== */
+.particles-container { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+.particle {
+  position:absolute; border-radius:50%;
+  background:var(--particle-color);
+  animation:particleFloat linear infinite;
+}
+@keyframes particleFloat {
+  0% { transform:translateY(100vh) rotate(0deg); opacity:0; }
+  10% { opacity:1; }
+  90% { opacity:1; }
+  100% { transform:translateY(-100px) rotate(720deg); opacity:0; }
+}
+
+/* ==================== MAIN CONTENT ==================== */
+.main-content { opacity:0; transition:opacity 0.8s ease; position:relative; z-index:1; }
+.main-content.visible { opacity:1; }
+
+/* ==================== NAVBAR ==================== */
+.navbar {
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  background:var(--bg-glass);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border-color);
+  padding:0 30px; height:65px;
+  display:flex; align-items:center; justify-content:space-between;
+  transition:all var(--transition-speed) ease;
+}
+.navbar.scrolled { box-shadow:0 4px 30px var(--shadow-color); }
+
+.nav-brand { display:flex; align-items:center; gap:12px; }
+.nav-logo {
+  width:38px; height:38px;
+  background:var(--gradient-primary);
+  border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; color:white; font-weight:800;
+  box-shadow:var(--glow-primary);
+}
+.nav-title {
+  font-size:15px; font-weight:700;
+  background:var(--gradient-primary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.nav-subtitle { font-size:10px; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; }
+
+.nav-center { display:flex; align-items:center; gap:4px; }
+.nav-link {
+  padding:8px 14px; font-size:13px; font-weight:500;
+  color:var(--text-secondary); text-decoration:none;
+  border-radius:10px; transition:all 0.3s ease; position:relative;
+}
+.nav-link:hover, .nav-link.active {
+  color:var(--accent-primary);
+  background:rgba(108,99,255,0.08);
+}
+.nav-link.active::after {
+  content:''; position:absolute; bottom:-1px; left:50%; transform:translateX(-50%);
+  width:20px; height:2px; background:var(--accent-primary); border-radius:1px;
+}
+.nav-link.ext {
+  border:1px solid var(--border-color);
+  background:rgba(108,99,255,0.06);
+  font-size:12px;
+}
+
+.nav-right { display:flex; align-items:center; gap:12px; }
+.theme-toggle {
+  width:42px; height:42px; border-radius:12px;
+  border:1px solid var(--border-color);
+  background:var(--bg-card); color:var(--text-secondary);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:16px; transition:all 0.3s ease;
+}
+.theme-toggle:hover {
+  border-color:var(--accent-primary); color:var(--accent-primary);
+  box-shadow:var(--glow-primary); transform:rotate(15deg);
+}
+
+/* ==================== HERO ==================== */
+.hero-section {
+  padding:110px 30px 60px;
+  text-align:center; position:relative;
+}
+.hero-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 20px;
+  background:rgba(108,99,255,0.1);
+  border:1px solid rgba(108,99,255,0.2);
+  border-radius:50px;
+  font-size:12px; font-weight:500; color:var(--accent-primary);
+  margin-bottom:24px;
+  animation:fadeInDown 0.8s ease;
+}
+.hero-badge .dot {
+  width:6px; height:6px;
+  background:var(--accent-secondary);
+  border-radius:50%; animation:dotPulse 2s ease infinite;
+}
+@keyframes dotPulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.5; transform:scale(1.5); }
+}
+
+/* virus animation */
+.virus-wrap { position:relative; width:90px; height:90px; margin:0 auto 36px; }
+.v-ring {
+  position:absolute; inset:0; border-radius:50%;
+  border:2px solid rgba(108,99,255,0.3);
+  animation:vSpin 9s linear infinite;
+}
+.v-ring::before {
+  content:''; position:absolute; top:-4px; left:50%;
+  width:7px; height:7px; border-radius:50%;
+  background:var(--accent-primary);
+  box-shadow:0 0 8px var(--accent-primary), 0 0 16px rgba(108,99,255,0.4);
+  transform:translateX(-50%);
+}
+.v-ring2 {
+  position:absolute; inset:10px; border-radius:50%;
+  border:1.5px solid rgba(0,212,170,0.25);
+  animation:vSpin 6s linear infinite reverse;
+}
+.v-ring2::before {
+  content:''; position:absolute; bottom:-3px; left:50%;
+  width:5px; height:5px; border-radius:50%;
+  background:var(--accent-secondary);
+  box-shadow:0 0 6px var(--accent-secondary);
+  transform:translateX(-50%);
+}
+.v-ring3 {
+  position:absolute; inset:22px; border-radius:50%;
+  border:1px solid rgba(255,107,107,0.2);
+  animation:vSpin 4s linear infinite;
+}
+.v-core {
+  position:absolute; inset:30px; border-radius:50%;
+  background:radial-gradient(circle, rgba(108,99,255,0.5) 0%, rgba(108,99,255,0.1) 50%, transparent 70%);
+  box-shadow:0 0 20px rgba(108,99,255,0.3), inset 0 0 15px rgba(108,99,255,0.2);
+  animation:vPulse 2s ease-in-out infinite;
+}
+@keyframes vSpin { to { transform:rotate(360deg); } }
+@keyframes vPulse {
+  0%,100% { transform:scale(1); opacity:0.7; }
+  50% { transform:scale(1.1); opacity:1; }
+}
+
+.hero-title {
+  font-size:clamp(26px,4.5vw,54px);
+  font-weight:800; line-height:1.15; margin-bottom:16px;
+  animation:fadeInUp 0.8s ease 0.2s both;
+}
+.hero-title .gradient-text {
+  background:var(--gradient-primary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hero-title .gradient-red {
+  background:var(--gradient-secondary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hero-sub {
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px; color:var(--text-muted); letter-spacing:0.1em;
+  margin-bottom:20px;
+  animation:fadeInUp 0.8s ease 0.3s both;
+}
+.hero-desc {
+  font-size:15px; color:var(--text-secondary);
+  max-width:620px; margin:0 auto 36px; line-height:1.8;
+  animation:fadeInUp 0.8s ease 0.4s both;
+}
+.ctas {
+  display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
+  margin-bottom:56px;
+  animation:fadeInUp 0.8s ease 0.5s both;
+}
+.btn-primary {
+  padding:13px 28px; border-radius:14px; font-size:13px; font-weight:600;
+  text-decoration:none; cursor:pointer; border:none;
+  background:var(--gradient-primary); color:white;
+  box-shadow:var(--glow-primary);
+  transition:all 0.3s ease;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 30px rgba(108,99,255,0.5); }
+.btn-secondary {
+  padding:13px 28px; border-radius:14px; font-size:13px; font-weight:600;
+  text-decoration:none; cursor:pointer;
+  background:var(--gradient-secondary); color:white;
+  box-shadow:0 0 20px rgba(255,107,107,0.3);
+  transition:all 0.3s ease;
+}
+.btn-secondary:hover { transform:translateY(-2px); box-shadow:0 0 30px rgba(255,107,107,0.5); }
+.btn-ghost {
+  padding:13px 28px; border-radius:14px; font-size:13px; font-weight:600;
+  text-decoration:none; cursor:pointer;
+  background:transparent; color:var(--accent-primary);
+  border:1px solid var(--border-glow);
+  transition:all 0.3s ease;
+}
+.btn-ghost:hover { background:rgba(108,99,255,0.1); transform:translateY(-2px); }
+
+/* STATS ROW */
+.stats-row {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:16px;
+  max-width:900px; margin:0 auto;
+  animation:fadeInUp 0.8s ease 0.6s both;
+}
+.stat-cell {
+  background:var(--bg-card);
+  border:1px solid var(--border-color);
+  border-radius:16px; padding:20px 12px; text-align:center;
+  transition:all 0.3s ease;
+}
+.stat-cell:hover {
+  border-color:var(--border-glow);
+  box-shadow:var(--glow-primary);
+  transform:translateY(-2px);
+}
+.stat-v {
+  font-family:'JetBrains Mono',monospace;
+  font-size:22px; font-weight:700;
+  background:var(--gradient-primary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-bottom:5px; line-height:1;
+}
+.stat-v.gold {
+  background:var(--gradient-secondary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.stat-l { font-size:10px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; }
+.scroll-hint {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  margin-top:50px; font-size:10px; color:var(--text-muted); letter-spacing:0.2em;
+  font-family:'JetBrains Mono',monospace;
+  animation:bounceHint 2.5s ease-in-out infinite;
+}
+.scroll-hint::after { content:'↓'; color:var(--accent-primary); font-size:14px; }
+@keyframes bounceHint { 0%,100% { transform:translateY(0); } 50% { transform:translateY(6px); } }
+
+/* ==================== CONTAINER ==================== */
+.container { max-width:1200px; margin:0 auto; padding:0 30px 80px; }
+
+/* ==================== SECTION HEADER ==================== */
+.section-header {
+  text-align:center; margin-bottom:52px;
+}
+.section-tag {
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px; color:var(--accent-primary); letter-spacing:0.25em;
+  text-transform:uppercase; margin-bottom:10px; opacity:0.8;
+}
+.section-title {
+  font-size:clamp(20px,3vw,32px); font-weight:800;
+  margin-bottom:8px;
+}
+.section-title .gradient-text {
+  background:var(--gradient-primary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.section-title .gradient-red {
+  background:var(--gradient-secondary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.section-line {
+  width:70px; height:3px; margin:16px auto 0;
+  background:var(--gradient-primary); border-radius:2px;
+  box-shadow:var(--glow-primary);
+}
+
+/* ==================== CARDS ==================== */
+.card {
+  background:var(--bg-card);
+  border:1px solid var(--border-color);
+  border-radius:20px; padding:28px;
+  transition:all 0.4s ease;
+  position:relative; overflow:hidden;
+}
+.card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--gradient-primary); opacity:0; transition:opacity 0.3s ease;
+}
+.card:hover {
+  border-color:var(--border-glow);
+  box-shadow:0 8px 40px var(--shadow-color), var(--glow-primary);
+  transform:translateY(-2px);
+}
+.card:hover::before { opacity:1; }
+
+/* DIVIDER */
+.sep {
+  max-width:1200px; margin:0 auto;
+  height:1px; background:var(--border-color);
+  position:relative; z-index:1;
+}
+
+/* ==================== PARTS GRID ==================== */
+.parts-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+.pc {
+  background:var(--bg-card);
+  border:1px solid var(--border-color);
+  border-radius:20px; padding:28px;
+  position:relative; overflow:hidden; cursor:pointer;
+  transition:all 0.4s ease;
+}
+.pc::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--gradient-primary); opacity:0; transition:opacity 0.3s ease;
+}
+.pc:nth-child(even)::before { background:var(--gradient-secondary); }
+.pc:hover {
+  border-color:var(--border-glow);
+  box-shadow:0 8px 40px var(--shadow-color), var(--glow-primary);
+  transform:translateY(-2px);
+}
+.pc:hover::before { opacity:1; }
+.pc-num {
+  font-family:'JetBrains Mono',monospace;
+  font-size:40px; font-weight:700;
+  background:var(--gradient-primary); -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  opacity:0.3; line-height:1; margin-bottom:12px;
+  transition:opacity 0.3s;
+}
+.pc:nth-child(even) .pc-num { background:var(--gradient-secondary); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.pc:hover .pc-num { opacity:0.7; }
+.pc-tag {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px; color:var(--accent-primary); letter-spacing:0.15em;
+  text-transform:uppercase; margin-bottom:10px; opacity:0.8;
+}
+.pc:nth-child(even) .pc-tag { color:var(--accent-secondary); }
+.pc-title { font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:10px; line-height:1.4; }
+.pc-body { font-size:13px; line-height:1.7; color:var(--text-secondary); }
+.tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; }
+.tag {
+  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.05em;
+  color:var(--accent-primary);
+  border:1px solid var(--border-color); padding:3px 9px; border-radius:6px;
+  background:rgba(108,99,255,0.08);
+}
+.pc-goto {
+  display:inline-flex; align-items:center; gap:6px; margin-top:14px;
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  color:var(--accent-primary); letter-spacing:0.08em;
+  opacity:0.6; transition:opacity 0.2s;
+}
+.pc:hover .pc-goto { opacity:1; }
+
+/* ==================== PART NAV ==================== */
+.part-nav { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:24px; }
+.pnav-btn {
+  font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.08em;
+  color:var(--text-secondary);
+  border:1px solid var(--border-color); background:var(--bg-card);
+  padding:10px 22px; border-radius:12px; cursor:pointer;
+  transition:all 0.3s ease; font-weight:500;
+}
+.pnav-btn:hover, .pnav-btn.active {
+  color:var(--accent-primary); border-color:var(--border-glow);
+  background:rgba(108,99,255,0.1); box-shadow:var(--glow-primary);
+}
+
+/* ==================== IFRAME VIEWER ==================== */
+.part-viewer {
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:20px; overflow:hidden; position:relative;
+}
+.part-viewer::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--gradient-primary); z-index:2;
+}
+.part-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; background:var(--bg-secondary);
+  border-bottom:1px solid var(--border-color);
+}
+.part-header-title {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--accent-primary); letter-spacing:0.08em;
+}
+.part-header-actions { display:flex; gap:8px; }
+.ph-btn {
+  font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;
+  color:var(--text-secondary);
+  border:1px solid var(--border-color); background:var(--bg-card);
+  padding:7px 14px; cursor:pointer; border-radius:10px;
+  text-decoration:none; letter-spacing:0.05em; transition:all 0.2s;
+}
+.ph-btn:hover { color:var(--accent-primary); border-color:var(--border-glow); background:rgba(108,99,255,0.1); }
+.part-iframe-wrap { width:100%; height:82vh; position:relative; }
+.part-iframe-wrap iframe { width:100%; height:100%; border:none; display:block; }
+.part-loading {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:var(--bg-card); z-index:1; transition:opacity 0.4s;
+}
+.part-loading.hide { opacity:0; pointer-events:none; }
+.ld-ring {
+  width:48px; height:48px; border-radius:50%;
+  border:2px solid transparent;
+  border-top-color:var(--accent-primary); border-right-color:rgba(108,99,255,0.3);
+  animation:loadingSpin 0.8s linear infinite;
+  margin:0 auto 14px;
+  box-shadow:var(--glow-primary);
+}
+.ld-txt { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.1em; }
+
+/* ==================== DASHBOARD ==================== */
+.dash-frame {
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:20px; overflow:hidden; position:relative;
+}
+.dash-frame::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--gradient-primary); z-index:2;
+}
+.dash-iframe-scaler { position:relative; width:100%; overflow:hidden; }
+.dash-iframe-scaler iframe { border:none; display:block; transform-origin:top left; }
+
+/* ==================== DATASETS ==================== */
+.ds-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.mbox {
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:20px; padding:28px 30px; position:relative; overflow:hidden;
+  transition:all 0.4s ease;
+}
+.mbox::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--gradient-primary);
+}
+.mbox:nth-child(2)::before { background:var(--gradient-secondary); }
+.mbox:hover { border-color:var(--border-glow); box-shadow:0 8px 40px var(--shadow-color), var(--glow-primary); transform:translateY(-2px); }
+.mbox-t {
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+  color:var(--accent-primary); letter-spacing:0.12em; text-transform:uppercase;
+  margin-bottom:20px;
+}
+.mbox:nth-child(2) .mbox-t { color:var(--accent-secondary); }
+.ml {
+  font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-primary);
+  margin:8px 0; padding:9px 14px;
+  background:rgba(108,99,255,0.06);
+  border-left:2px solid rgba(108,99,255,0.4);
+  border-radius:0 8px 8px 0;
+  line-height:1.6; letter-spacing:0.02em;
+}
+.mbox:nth-child(2) .ml {
+  border-left-color:rgba(0,212,170,0.4);
+  background:rgba(0,212,170,0.05);
+}
+.mc { font-size:11.5px; color:var(--text-muted); margin:2px 0 8px 14px; font-style:italic; line-height:1.5; }
+.hnode { display:flex; align-items:baseline; gap:12px; font-family:'JetBrains Mono',monospace; font-size:12.5px; margin:8px 0; line-height:1.6; }
+.hnode .hl2 { color:var(--accent-secondary); font-weight:600; min-width:80px; }
+.hnode .hd { color:var(--text-secondary); font-size:12px; }
+
+/* INDICATEURS box */
+.indicateurs-box {
+  margin-top:20px; background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:20px; padding:24px 28px;
+}
+.indicateurs-title {
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent-tertiary);
+  letter-spacing:0.2em; text-transform:uppercase; margin-bottom:16px; opacity:0.85;
+}
+.indicateurs-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.indicateur-item .name {
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+  margin-bottom:5px;
+}
+.indicateur-item:nth-child(1) .name,
+.indicateur-item:nth-child(3) .name { color:var(--accent-secondary); }
+.indicateur-item:nth-child(2) .name { color:var(--accent-tertiary); }
+.indicateur-item:nth-child(4) .name { color:var(--accent-primary); }
+.indicateur-item .desc { font-size:11.5px; color:var(--text-muted); }
+
+/* ==================== TEAM ==================== */
+.team-grid { display:grid; grid-template-columns:1fr; gap:16px; max-width:380px; margin:0 auto; }
+.tc {
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:20px; padding:30px; text-align:center;
+  position:relative; overflow:hidden; transition:all 0.4s ease;
+}
+.tc::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--gradient-primary);
+}
+.tc:hover { border-color:var(--border-glow); box-shadow:0 8px 40px var(--shadow-color), var(--glow-primary); transform:translateY(-2px); }
+.tav {
+  width:60px; height:60px; border-radius:50%;
+  background:var(--gradient-primary);
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 16px;
+  font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700;
+  color:white; box-shadow:var(--glow-primary);
+}
+.tname { font-weight:700; color:var(--text-primary); font-size:15px; margin-bottom:4px; }
+.trole { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; }
+.tlinks { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:16px; }
+.tlink {
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent-primary);
+  text-decoration:none;
+  border:1px solid var(--border-color); padding:5px 12px; border-radius:10px;
+  background:rgba(108,99,255,0.07);
+  transition:all 0.2s;
+}
+.tlink:hover { background:rgba(108,99,255,0.2); border-color:var(--border-glow); }
+
+/* ==================== FOOTER ==================== */
+footer {
+  position:relative; z-index:1;
+  border-top:1px solid var(--border-color);
+  background:var(--bg-secondary);
+  padding:24px 48px;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px;
+}
+.fbrand {
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em;
+  background:var(--gradient-primary);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  font-weight:600;
+}
+.flinks { display:flex; gap:16px; }
+.flinks a {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  color:var(--text-muted); text-decoration:none; letter-spacing:0.05em;
+  transition:color 0.2s;
+}
+.flinks a:hover { color:var(--accent-primary); }
+.fcopy { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); }
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeInDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+[data-reveal] { opacity:0; transform:translateY(18px); transition:opacity 0.65s ease, transform 0.65s ease; }
+[data-reveal].vis { opacity:1; transform:translateY(0); }
+
+/* ==================== RESPONSIVE ==================== */
+@media(max-width:768px) {
+  .navbar { padding:0 16px; height:60px; }
+  .nav-center { display:none; }
+  .hero-section { padding:80px 20px 40px; }
+  .hero-title { font-size:clamp(22px,6vw,36px); }
+  .stats-row { grid-template-columns:repeat(3,1fr); }
+  .stats-row .stat-cell:nth-child(4),
+  .stats-row .stat-cell:nth-child(5) { display:none; }
+  .container { padding:0 20px 60px; }
+  .parts-grid, .ds-grid { grid-template-columns:1fr; }
+  .indicateurs-grid { grid-template-columns:1fr 1fr; }
+  .part-iframe-wrap { height:60vh; }
+  footer { padding:16px 20px; flex-direction:column; align-items:flex-start; }
+  .ctas { flex-direction:column; align-items:center; }
+  .btn-primary, .btn-secondary, .btn-ghost { width:100%; max-width:280px; text-align:center; }
+}
+@media(max-width:480px) {
+  .stats-row { grid-template-columns:1fr 1fr; }
+  .stats-row .stat-cell:nth-child(5) { grid-column:span 2; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="ls-logo-wrap">
+    <div class="ls-ring">
+      <div class="ls-ring-icon">V</div>
+    </div>
+  </div>
+  <div class="ls-made">MADE BY NGUYEN DUC HOANG VIET</div>
+  <div class="ls-proj">PROJET DATA ANALYST COVID-19</div>
+  <div class="ls-bar-wrap"><div class="ls-bar" id="loadingBar"></div></div>
+</div>
+
+<style>
+.loading-screen {
+  background:#000 !important;
+  gap:0 !important;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+.ls-logo-wrap {
+  margin-bottom:44px;
+}
+
+/* vòng ngoài: tím + xanh lá, xoay thuận */
+.ls-ring {
+  width:150px; height:150px;
+  border-radius:50%;
+  position:relative;
+}
+.ls-ring::before {
+  content:''; position:absolute; inset:0; border-radius:50%;
+  border:4px solid transparent;
+  border-top-color:#6c63ff;
+  border-right-color:#00d4aa;
+  animation:lsSpin 1.2s linear infinite;
+}
+/* vòng trong: đỏ + cam, xoay ngược */
+.ls-ring::after {
+  content:''; position:absolute; inset:16px; border-radius:50%;
+  border:2px solid transparent;
+  border-bottom-color:#ff6b6b;
+  border-left-color:#ffa726;
+  animation:lsSpin 0.8s linear infinite reverse;
+}
+
+@keyframes lsSpin { to { transform:rotate(360deg); } }
+
+/* chữ V ở giữa */
+.ls-ring-icon {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  font-family:'Inter',sans-serif;
+  font-size:52px; font-weight:900;
+  background:linear-gradient(135deg,#6c63ff,#00d4aa);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+@keyframes lsPulse {
+  0%,100% { transform:translate(-50%,-50%) scale(1); opacity:0.7; }
+  50%      { transform:translate(-50%,-50%) scale(1.2); opacity:1; }
+}
+
+/* ---- texts ---- */
+.ls-made {
+  font-family:'Inter',sans-serif;
+  font-size:clamp(13px,1.8vw,21px);
+  font-weight:700;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  background:linear-gradient(90deg, #00d4aa, #6c63ff, #ffa726, #00d4aa);
+  background-size:300% 100%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:lsFadeIn 1s ease 0.3s both, lsTextFlow 3s linear infinite;
+  margin-bottom:12px;
+}
+@keyframes lsTextFlow {
+  0%   { background-position:0% 50%; }
+  100% { background-position:300% 50%; }
+}
+.ls-proj {
+  font-family:'Inter',sans-serif;
+  font-size:clamp(9px,1vw,12px);
+  font-weight:400;
+  letter-spacing:0.26em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.38);
+  margin-bottom:30px;
+  animation:lsFadeIn 1s ease 0.5s both;
+}
+.ls-bar-wrap {
+  width:200px; height:2px;
+  background:rgba(108,99,255,0.1);
+  border-radius:1px; overflow:hidden;
+  animation:lsFadeIn 0.8s ease 0.6s both;
+}
+.ls-bar {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,#6c63ff,#00d4aa);
+  border-radius:1px; transition:width 0.1s linear;
+}
+@keyframes lsFadeIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+</style>
+
+<!-- PARTICLES -->
+<div class="particles-container" id="particles"></div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content" id="mainContent">
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">
+    <div class="nav-logo"><i class="fas fa-virus"></i></div>
+    <div>
+      <div class="nav-title">COVID-19 · DATA</div>
+      <div class="nav-subtitle">Python · Kaggle · 2024</div>
+    </div>
+  </div>
+  <div class="nav-center">
+    <a href="#hero" class="nav-link active">Accueil</a>
+    <a href="#parties" class="nav-link">Parties</a>
+    <a href="#viewer" class="nav-link">Codes</a>
+    <a href="#dashboard" class="nav-link">Dashboard</a>
+    <a href="#datasets" class="nav-link">Données</a>
+    <a href="#equipe" class="nav-link">Auteur</a>
+    <a href="https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/" target="_blank" class="nav-link ext">Site Quarto ↗</a>
+  </div>
+  <div class="nav-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Changer de thème">☀️</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero" class="hero-section">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    Python · Kaggle · Johns Hopkins · 2024
+  </div>
+  <div class="virus-wrap">
+    <div class="v-ring"></div>
+    <div class="v-ring2"></div>
+    <div class="v-ring3"></div>
+    <div class="v-core"></div>
+  </div>
+  <h1 class="hero-title">
+    <span class="gradient-red">COVID-19</span> &amp;<br>
+    <span class="gradient-text">Bonheur Mondial</span><br>
+    Data Analysis
+  </h1>
+  <div class="hero-sub">Johns Hopkins University · World Happiness Report 2021</div>
+  <p class="hero-desc">Analyse des données COVID-19 sur le nombre cumulé de cas confirmés par pays, croisée avec des indicateurs de qualité de vie pour étudier le lien entre propagation du virus et bonheur des populations.</p>
+  <div class="ctas">
+    <a href="#viewer" class="btn-primary">Explorer les codes</a>
+    <a href="#dashboard" class="btn-secondary">Voir le Dashboard</a>
+    <a href="https://github.com/Hoangviet1810/Projet-Covid-19-Data-Analyst" target="_blank" class="btn-ghost">GitHub ↗</a>
+  </div>
+  <div class="stats-row" data-reveal>
+    <div class="stat-cell"><div class="stat-v">180+</div><div class="stat-l">Pays analysés</div></div>
+    <div class="stat-cell"><div class="stat-v gold">2021</div><div class="stat-l">World Happiness</div></div>
+    <div class="stat-cell"><div class="stat-v">4</div><div class="stat-l">Parties</div></div>
+    <div class="stat-cell"><div class="stat-v gold">Python</div><div class="stat-l">Langage</div></div>
+    <div class="stat-cell"><div class="stat-v">r²</div><div class="stat-l">Corrélations</div></div>
+  </div>
+  <div class="scroll-hint">SCROLL</div>
+</section>
+
+<div class="sep" style="margin:0 30px"></div>
+
+<!-- PARTIES OVERVIEW -->
+<section id="parties" style="padding-top:80px">
+<div class="container">
+  <div class="section-header" data-reveal>
+    <div class="section-tag">// structure du projet</div>
+    <div class="section-title">Organisation des <span class="gradient-text">Parties</span></div>
+    <div class="section-line"></div>
+  </div>
+  <div class="parts-grid" data-reveal>
+    <div class="pc" onclick="openPart('part1')">
+      <div class="pc-num">01</div>
+      <div class="pc-tag">// préparation &amp; nettoyage</div>
+      <div class="pc-title">Préparation et nettoyage des données</div>
+      <div class="pc-body">Importation des jeux de données COVID-19 (Johns Hopkins) et World Happiness Report 2021. Traitement des valeurs manquantes, agrégation par pays, transposition et fusion des sources de données pour créer un dataset unifié.</div>
+      <div class="tags"><span class="tag">pandas</span><span class="tag">numpy</span><span class="tag">merge</span><span class="tag">dropna</span><span class="tag">groupby</span></div>
+      <div class="pc-goto">→ Voir le code complet</div>
+    </div>
+    <div class="pc" onclick="openPart('part2')">
+      <div class="pc-num">02</div>
+      <div class="pc-tag">// analyse exploratoire</div>
+      <div class="pc-title">Analyse exploratoire des données (EDA)</div>
+      <div class="pc-body">Exploration des caractéristiques principales via statistiques descriptives et visualisations. Étude de l'évolution de la pandémie par pays, courbes cumulées, classements, et distributions du taux d'infection maximal.</div>
+      <div class="tags"><span class="tag">matplotlib</span><span class="tag">seaborn</span><span class="tag">plotly</span><span class="tag">describe()</span><span class="tag">boxplot</span></div>
+      <div class="pc-goto">→ Voir le code complet</div>
+    </div>
+    <div class="pc" onclick="openPart('part3')">
+      <div class="pc-num">03</div>
+      <div class="pc-tag">// corrélations &amp; régressions</div>
+      <div class="pc-title">Analyse COVID-19 × Bonheur</div>
+      <div class="pc-body">Corrélations entre le taux maximal d'infection et les indicateurs du World Happiness Report : PIB par habitant, soutien social, espérance de vie, liberté de choix. Régressions linéaires et visualisation des relations.</div>
+      <div class="tags"><span class="tag">scipy</span><span class="tag">pearson r</span><span class="tag">linregress</span><span class="tag">scatter</span><span class="tag">r²</span></div>
+      <div class="pc-goto">→ Voir le code complet</div>
+    </div>
+    <div class="pc" onclick="openPart('part4')">
+      <div class="pc-num">04</div>
+      <div class="pc-tag">// synthèse &amp; perspectives</div>
+      <div class="pc-title">Conclusion et pistes d'amélioration</div>
+      <div class="pc-body">Synthèse des principaux résultats obtenus, discussion des limites méthodologiques et propositions d'axes d'amélioration : données plus récentes, variables supplémentaires, modèles prédictifs avancés.</div>
+      <div class="tags"><span class="tag">synthèse</span><span class="tag">limites</span><span class="tag">perspectives</span><span class="tag">ML</span></div>
+      <div class="pc-goto">→ Voir le code complet</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="sep" style="margin:0 30px"></div>
+
+<!-- PART VIEWER -->
+<section id="viewer" style="padding-top:80px">
+  <div class="container">
+    <div class="section-header" data-reveal>
+      <div class="section-tag">// navigateur de code</div>
+      <div class="section-title">Accès aux <span class="gradient-text">Parties</span></div>
+      <div class="section-line"></div>
+    </div>
+    <div class="part-nav" data-reveal>
+      <button class="pnav-btn active" onclick="openPart('part1')">01 · Nettoyage</button>
+      <button class="pnav-btn" onclick="openPart('part2')">02 · EDA</button>
+      <button class="pnav-btn" onclick="openPart('part3')">03 · Corrélations</button>
+      <button class="pnav-btn" onclick="openPart('part4')">04 · Conclusion</button>
+    </div>
+  </div>
+  <!-- FULL WIDTH VIEWER -->
+  <div class="part-viewer fullwidth-frame" data-reveal id="viewer-box" style="margin:0 30px 0 30px;border-radius:20px;overflow:hidden">
+    <div class="part-header">
+      <div class="part-header-title" id="frame-label">// PARTIE 1 — Préparation et nettoyage des données</div>
+      <div class="part-header-actions">
+        <a id="frame-ext-link" href="https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/Part1.html" target="_blank" class="ph-btn">Ouvrir ↗</a>
+        <button class="ph-btn" onclick="toggleFullscreen()">Plein écran</button>
+      </div>
+    </div>
+    <div class="part-iframe-wrap" id="frame-wrap" style="height:88vh">
+      <div class="part-loading" id="frame-loader">
+        <div style="text-align:center">
+          <div class="ld-ring"></div>
+          <div class="ld-txt">CHARGEMENT...</div>
+        </div>
+      </div>
+      <iframe id="main-frame"
+        src="https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/Part1.html"
+        onload="document.getElementById('frame-loader').classList.add('hide')">
+      </iframe>
+    </div>
+  </div>
+  <div style="height:60px"></div>
+</section>
+
+<div class="sep" style="margin:0 30px"></div>
+
+<!-- DASHBOARD -->
+<section id="dashboard" style="padding-top:80px">
+  <div class="container">
+    <div class="section-header" data-reveal>
+      <div class="section-tag">// visualisation interactive</div>
+      <div class="section-title">Dashboard <span class="gradient-text">Interactif</span></div>
+      <div class="section-line"></div>
+      <p style="font-size:13px;color:var(--text-muted);max-width:600px;margin:14px auto 0;line-height:1.7">
+        Visualisations interactives du taux d'infection par pays, corrélations avec les indicateurs de bonheur et analyses comparatives mondiales.
+      </p>
+    </div>
+  </div>
+  <!-- FULL WIDTH DASHBOARD -->
+  <div class="dash-frame" data-reveal style="margin:0 30px;border-radius:20px;overflow:hidden">
+    <div class="part-header">
+      <div class="part-header-title">// DASHBOARD — COVID-19 × Bonheur Mondial</div>
+      <div class="part-header-actions">
+        <a href="https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/images/dashboard_covid_happiness.html" target="_blank" class="ph-btn">Ouvrir en plein écran ↗</a>
+      </div>
+    </div>
+    <div style="position:relative">
+      <div class="part-loading" id="dash-loader">
+        <div style="text-align:center">
+          <div class="ld-ring"></div>
+          <div class="ld-txt">CHARGEMENT DU DASHBOARD...</div>
+        </div>
+      </div>
+      <div class="dash-iframe-scaler" id="dash-scaler">
+        <iframe id="dash-iframe"
+          src="https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/images/dashboard_covid_happiness.html"
+          onload="document.getElementById('dash-loader').classList.add('hide');scaleDashboard()">
+        </iframe>
+      </div>
+    </div>
+  </div>
+  <div style="height:60px"></div>
+</section>
+
+<div class="sep" style="margin:0 30px"></div>
+
+<!-- DATASETS -->
+<section id="datasets" style="padding-top:80px">
+<div class="container">
+  <div class="section-header" data-reveal>
+    <div class="section-tag">// sources de données</div>
+    <div class="section-title">Jeux de <span class="gradient-red">Données</span></div>
+    <div class="section-line"></div>
+  </div>
+  <div class="ds-grid" data-reveal>
+    <div class="mbox">
+      <div class="mbox-t">// COVID-19 · Johns Hopkins</div>
+      <div class="ml">Cas confirmés cumulés par pays</div>
+      <div class="mc">Séries temporelles journalières mondiales</div>
+      <div class="ml">Données depuis Jan 2020</div>
+      <div class="mc">180+ pays, mise à jour quotidienne</div>
+      <div class="ml">Taux maximal d'infection calculé</div>
+      <div class="mc">Métrique clé : max(cas) / population</div>
+      <div class="tags" style="margin-top:16px">
+        <span class="tag">Johns Hopkins</span><span class="tag">CSV</span><span class="tag">Kaggle</span><span class="tag">time series</span>
+      </div>
+    </div>
+    <div class="mbox">
+      <div class="mbox-t">// World Happiness Report 2021</div>
+      <div class="ml">Score de bonheur (Ladder Score)</div>
+      <div class="ml">PIB par habitant · Soutien social</div>
+      <div class="mc">Log GDP per capita (PPP)</div>
+      <div class="ml">Espérance de vie · Liberté de choix</div>
+      <div class="mc">Healthy life expectancy at birth</div>
+      <div class="ml">Générosité · Perception corruption</div>
+      <div style="margin-top:16px">
+        <div class="hnode"><span class="hl2">Source</span><span class="hd">Gallup World Poll · ONU</span></div>
+        <div class="hnode"><span class="hl2">Fusion</span><span class="hd">Merge sur nom de pays standardisé</span></div>
+        <div class="hnode"><span class="hl2">Kaggle</span><span class="hd">Dataset public disponible en ligne</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="indicateurs-box" data-reveal>
+    <div class="indicateurs-title">// INDICATEURS ANALYSÉS</div>
+    <div class="indicateurs-grid">
+      <div class="indicateur-item"><div class="name">GDP per capita</div><div class="desc">Richesse économique par habitant</div></div>
+      <div class="indicateur-item"><div class="name">Social support</div><div class="desc">Réseau de soutien social perçu</div></div>
+      <div class="indicateur-item"><div class="name">Life expectancy</div><div class="desc">Espérance de vie en bonne santé</div></div>
+      <div class="indicateur-item"><div class="name">Freedom</div><div class="desc">Liberté de faire des choix de vie</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="sep" style="margin:0 30px"></div>
+
+<!-- AUTEUR -->
+<section id="equipe" style="padding-top:80px;padding-bottom:80px">
+<div class="container">
+  <div class="section-header" data-reveal>
+    <div class="section-tag">// auteur</div>
+    <div class="section-title">L'<span class="gradient-text">Auteur</span></div>
+    <div class="section-line"></div>
+  </div>
+  <div class="team-grid" data-reveal>
+    <div class="tc">
+      <div class="tav">V</div>
+      <div class="tname">NGUYEN Duc Hoang Viet</div>
+      <div class="trole">Data Analyst · Python · Université de Lille</div>
+      <div class="tlinks">
+        <a href="https://github.com/Hoangviet1810" target="_blank" class="tlink">GitHub</a>
+        <a href="https://ndhviet.wixsite.com/hviet-portfolio" target="_blank" class="tlink">Portfolio</a>
+        <a href="https://www.linkedin.com/in/hoang-viet1810/" target="_blank" class="tlink">LinkedIn</a>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:36px" data-reveal>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:0.12em;margin-bottom:18px;text-transform:uppercase">Voir le projet complet en ligne</div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/" target="_blank" class="btn-primary">Site Quarto complet ↗</a>
+      <a href="https://github.com/Hoangviet1810/Projet-Covid-19-Data-Analyst" target="_blank" class="btn-ghost">GitHub ↗</a>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="fbrand">COVID-19 · DATA ANALYST · 2024</div>
+  <div class="flinks">
+    <a href="https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/" target="_blank">Site Quarto</a>
+    <a href="https://github.com/Hoangviet1810/Projet-Covid-19-Data-Analyst" target="_blank">GitHub</a>
+    <a href="https://ndhviet.wixsite.com/hviet-portfolio" target="_blank">Portfolio</a>
+    <a href="https://www.kaggle.com/datasets/antgoldbloom/covid19-data-from-john-hopkins-university" target="_blank">Kaggle</a>
+  </div>
+  <div class="fcopy">© 2024 NGUYEN Duc Hoang Viet — Tous droits réservés</div>
+</footer>
+<div style="text-align:center;padding:12px 0 18px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--text-muted);background:var(--bg-secondary)">
+  Created by <span style="background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700">Nguyen Duc Hoang Viet</span>
+</div>
+
+</div><!-- /main-content -->
+
+<script>
+// ==================== LOADING ====================
+const loadingBar = document.getElementById('loadingBar');
+let progress = 0;
+const loadInterval = setInterval(() => {
+  progress += Math.random() * 15;
+  if (progress >= 100) { progress = 100; clearInterval(loadInterval); }
+  loadingBar.style.width = progress + '%';
+}, 100);
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loadingScreen').classList.add('fade-out');
+    document.getElementById('mainContent').classList.add('visible');
+  }, 4000);
+});
+
+// ==================== PARTICLES ====================
+function createParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 6 + 2;
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}%;
+      animation-duration:${Math.random()*20+10}s;
+      animation-delay:${Math.random()*10}s;
+    `;
+    container.appendChild(p);
+  }
+}
+createParticles();
+
+// ==================== NAVBAR SCROLL ====================
+window.addEventListener('scroll', () => {
+  const navbar = document.getElementById('navbar');
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+
+  // active nav link
+  const secs = document.querySelectorAll('section[id]');
+  let cur = '';
+  secs.forEach(s => { if (window.scrollY >= s.offsetTop - 130) cur = s.id; });
+  document.querySelectorAll('.nav-link[href^="#"]').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+  });
+});
+
+// ==================== THEME ====================
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  html.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = isLight ? '☀️' : '🌙';
+}
+
+// ==================== PART VIEWER ====================
+const partConfig = {
+  part1: { label:'// PARTIE 1 — Préparation et nettoyage des données', url:'https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/Part1.html' },
+  part2: { label:'// PARTIE 2 — Analyse exploratoire (EDA)',           url:'https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/Part2.html' },
+  part3: { label:'// PARTIE 3 — Corrélations et régressions',          url:'https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/Part3.html' },
+  part4: { label:'// PARTIE 4 — Conclusion',                           url:'https://hoangviet1810.github.io/Projet-Covid-19-Data-Analyst/Part4.html' },
+};
+
+function openPart(id) {
+  const cfg = partConfig[id];
+  document.getElementById('viewer-box').scrollIntoView({ behavior:'smooth', block:'start' });
+  const frame = document.getElementById('main-frame');
+  const loader = document.getElementById('frame-loader');
+  loader.classList.remove('hide');
+  frame.src = cfg.url;
+  document.getElementById('frame-label').textContent = cfg.label;
+  document.getElementById('frame-ext-link').href = cfg.url;
+  const keys = ['part1','part2','part3','part4'];
+  document.querySelectorAll('.pnav-btn').forEach((b,i) => b.classList.toggle('active', keys[i] === id));
+}
+
+function toggleFullscreen() {
+  const wrap = document.getElementById('frame-wrap');
+  if (!document.fullscreenElement) wrap.requestFullscreen();
+  else document.exitFullscreen();
+}
+
+// ==================== DASHBOARD SCALE ====================
+function scaleDashboard() {
+  const scaler = document.getElementById('dash-scaler');
+  const iframe = document.getElementById('dash-iframe');
+  if (!scaler || !iframe) return;
+  const iframeW = 1100;
+  const containerW = scaler.offsetWidth;
+  if (containerW < 769) {
+    const scale = containerW / iframeW;
+    const iframeH = 700;
+    iframe.style.width = iframeW + 'px';
+    iframe.style.height = iframeH + 'px';
+    iframe.style.transform = 'scale(' + scale + ')';
+    iframe.style.transformOrigin = 'top left';
+    scaler.style.height = Math.round(iframeH * scale) + 'px';
+  } else {
+    iframe.style.width = '100%';
+    iframe.style.height = '85vh';
+    iframe.style.transform = 'none';
+    scaler.style.height = '85vh';
+  }
+}
+window.addEventListener('resize', scaleDashboard);
+scaleDashboard();
+
+// ==================== REVEAL ANIMATIONS ====================
+const obs = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) e.target.classList.add('vis');
+}), { threshold: 0.1 });
+document.querySelectorAll('[data-reveal]').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
